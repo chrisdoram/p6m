@@ -5,11 +5,12 @@ export class Point {
     this.x = x;
     this.y = y;
   }
+
   /**
-   * Returns a string representation of the Point "x,y"
+   * Returns a string representation of the Point in the form "x,y"
    * @returns {string}
    */
-  toString() {
+  public toString() {
     return `${this.x},${this.y}`;
   }
 }

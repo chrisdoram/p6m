@@ -1,4 +1,4 @@
-import { Layout } from "./layout.js";
+import { Layout } from "./layout";
 
 export enum pointyDirection {
   NE,
@@ -45,7 +45,7 @@ export class Hex {
   readonly q: number;
   readonly r: number;
   readonly s: number;
-  private _context: Layout | undefined;
+  context: Layout | undefined;
 
   constructor(coordinates: Coordinates, context?: Layout) {
     const { q, r, s } = Hex.toCuboid(coordinates);
@@ -55,11 +55,11 @@ export class Hex {
     if (q + r + s !== 0) {
       throw new RangeError(`Hex(${q}, ${r}, ${s}) invalid: does not zero-sum`);
     }
-    this._context = context;
+    this.context = context;
   }
 
   /**
-   * vector directions of neighboring Hex's
+   * Axial vectors of the six neighboring Hex's.
    */
   private static DIRECTION_VECTORS: Axial[] = [
     { q: +1, r: -1 },
@@ -71,8 +71,8 @@ export class Hex {
   ];
 
   /**
-   * Convert coordinates into Cuboid coordinates
-   * @param {Coordinates} coordinates coordinates of a Hex
+   * Convert coordinates into cuboid coordinates.
+   * @param {Coordinates} coordinates axial, cartesian or cuboid coordinates.
    * @returns {Cuboid}
    */
   private static toCuboid(coordinates: Coordinates): Cuboid {
@@ -86,8 +86,8 @@ export class Hex {
   }
 
   /**
-   * Convert axial coordinates into Cuboid coordinates
-   * @param {Axial} coordinates axial coordinates of a hex
+   * Convert axial coordinates into cuboid coordinates.
+   * @param {Axial} coordinates axial coordinates.
    * @returns {Cuboid}
    */
   private static fromAxial(coordinates: Axial): Cuboid {
@@ -99,8 +99,8 @@ export class Hex {
   }
 
   /**
-   * Convert cartesian coordinates into Cuboid coordinates
-   * @param {Cartesian} coordinates cartesian coordinates of a hex
+   * Convert cartesian coordinates into cuboid coordinates.
+   * @param {Cartesian} coordinates cartesian coordinates.
    * @returns {Cuboid}
    */
   private static fromCartesian(coordinates: Cartesian): Cuboid {
@@ -111,12 +111,8 @@ export class Hex {
     });
   }
 
-  public set context(context: Layout) {
-    this._context = context;
-  }
-
   /**
-   * returns a string representation of this Hex "hex(q,r,s)"
+   * Returns a string representation of this Hex in the form "hex(q,r,s)".
    * @returns {string}
    */
   public toString() {
@@ -124,63 +120,64 @@ export class Hex {
   }
 
   /**
-   * Compare equality between this Hex and b
-   * @param {Hex} b Hex to test for equality
+   * Compare equality between this Hex and another Hex.
+   * @param {Hex} b another Hex.
    * @returns {boolean}
    */
-  equals(b: Hex) {
+  public equals(b: Hex) {
     return this.q === b.q && this.r === b.r && this.s === b.s;
   }
 
+  // TODO : could this be changed to add(coords: Coordinates) {} ??
   /**
-   * Add vec to this Hex
-   * @param {Hex} vec The Hex vector to add to this Hex
+   * Add vector to this Hex.
+   * @param {Hex} vec the Hex vector to add to this Hex.
    * @returns {Hex}
    */
-  add(vec: Hex) {
+  public add(vec: Hex) {
     return new Hex({ q: this.q + vec.q, r: this.r + vec.r });
   }
 
   /**
-   * Subtract vex from this Hex
-   * @param {Hex} vec The Hex vector to subtract from this Hex
+   * Subtract vector from this Hex.
+   * @param {Hex} vec the Hex vector to subtract from this Hex.
    * @returns {Hex}
    */
-  subtract(vec: Hex) {
+  public subtract(vec: Hex) {
     return new Hex({ q: this.q - vec.q, r: this.r - vec.r });
   }
 
   /**
-   * Scale this Hex by a constant k
-   * @param {number} k
+   * Scale this Hex by a constant k.
+   * @param {number} k the constant to scale by.
    * @returns {Hex}
    */
-  scale(k: number) {
+  public scale(k: number) {
     return new Hex({ q: this.q * k, r: this.r * k });
   }
 
   /**
-   * Rotate this Hex vector 60 degrees anti-clockwise
+   * Rotate this Hex vector 60 degrees anti-clockwise.
    * @returns {Hex}
    */
-  rotateLeft() {
+  public rotateLeft() {
     return new Hex({ q: -this.s, r: -this.q, s: -this.r });
   }
 
   /**
-   * Rotate this Hex vector 60 degrees clockwise
+   * Rotate this Hex vector 60 degrees clockwise.
    * @returns {Hex}
    */
-  rotateRight() {
+  public rotateRight() {
     return new Hex({ q: -this.r, r: -this.s, s: -this.q });
   }
 
   /**
-   * Returns the neighboring hex in the given direction
-   * @param {number} direction the direction of the neighbor from N (flat-top) or NE (pointy-top)
+   * Returns the neighboring hex in the given direction.
+   * @param {Direction} direction the direction of the neighbor from N (flat-top) or NE (pointy-top)
    * @returns {Hex}
    */
-  neighbor(direction: Direction) {
+  public neighbor(direction: Direction) {
     if (!(direction >= 0 && direction <= 5)) {
       throw new Error("Direction must be between 0 and 5");
     }
@@ -188,10 +185,10 @@ export class Hex {
   }
 
   /**
-   * Returns all 6 neighbors of this Hex
+   * Returns all 6 neighbors of this Hex.
    * @returns {Hex[]}
    */
-  allNeighbors() {
+  public allNeighbors() {
     const n: Hex[] = [];
     for (let d of Hex.DIRECTION_VECTORS) {
       n.push(this.add(new Hex(d)));
@@ -200,28 +197,28 @@ export class Hex {
   }
 
   /**
-   * Returns the length of the Hex vector in Cube coordinates
+   * Returns the length of the Hex vector in cuboid coordinates.
    * @returns {number}
    */
-  length() {
+  public length() {
     const abs = Math.abs;
     return (abs(this.q) + abs(this.r) + abs(this.s)) / 2;
   }
 
   /**
-   * Returns the distance between this Hex and b
-   * @param {Hex} b
+   * Returns the distance between this Hex and another Hex.
+   * @param {Hex} b the other Hex.
    * @returns {number}
    */
-  distance(b: Hex) {
+  public distance(b: Hex) {
     return this.subtract(b).length();
   }
 
   /**
-   * Round this Hex to the nearest integer Hex
+   * Round this Hex to the nearest integer Hex.
    * @returns {Hex}
    */
-  round() {
+  public round() {
     // rounds hex in float coords to int coords
     let qi = Math.round(this.q);
     let ri = Math.round(this.r);
@@ -240,65 +237,26 @@ export class Hex {
   }
 
   /**
-   * Returns the coordinates of the center of this hex
+   * Returns the coordinates of the center of this hex.
    * @returns {Point}
    */
-  toPoint() {
-    if (!this._context) {
+  public toPoint() {
+    if (!this.context) {
       throw new ReferenceError("No layout context for converting to a point");
     }
-    return this._context.hexToPixel(this);
+    return this.context.hexToPixel(this);
   }
 
   /**
-   * Returns all pixel coordinates of the corners of this hex
+   * Returns all pixel coordinates of the corners of this hex.
    * @returns {Point[]}
    */
-  toCoordinates() {
-    if (!this._context) {
+  public toCoordinates(ignoreGutter: boolean = false) {
+    if (!this.context) {
       throw new ReferenceError(
         "No layout context for converting to coordinates"
       );
     }
-    return this._context.polygonCorners(this);
-  }
-
-  /**
-   * TODO : put the below methods in a utils lib
-   */
-
-  /**
-   * Linear interpolation between this Hex and b with step size t
-   * @param {Hex} b Hex to interpolate between
-   * @param {number} t step
-   * @returns {Hex}
-   */
-  lerp(b: Hex, t: number) {
-    const _lerp = (a: number, b: number, t: number) => a * (1 - t) + b * t;
-    // t = 1.0/N * i
-    // where N is the int hex distance between the endpoints
-    // i is the current hex being sampled
-    return new Hex({ q: _lerp(this.q, b.q, t), r: _lerp(this.r, b.r, t) });
-  }
-
-  /**
-   * Returns an array of Hex's between this Hex and b
-   * @param {Hex} b target Hex of the line
-   * @returns {Hex[]}
-   */
-  lineDraw(b: Hex) {
-    let N = this.distance(b);
-    var aNudge = new Hex({
-      q: this.q + 1e-6,
-      r: this.r + 1e-6,
-      s: this.s - 2e-6,
-    });
-    var bNudge = new Hex({ q: b.q + 1e-6, r: b.r + 1e-6, s: b.s - 2e-6 });
-    let results: Hex[] = [];
-    for (let i = 0; i <= N; i++) {
-      // Math.max there to handle 0 length line case (A == B)
-      results.push(aNudge.lerp(bNudge, (1.0 / Math.max(N, 1)) * i).round());
-    }
-    return results;
+    return this.context.polygonCorners(this, ignoreGutter);
   }
 }
