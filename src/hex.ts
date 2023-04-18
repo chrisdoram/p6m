@@ -128,7 +128,6 @@ export class Hex {
     return this.q === b.q && this.r === b.r && this.s === b.s;
   }
 
-  // TODO : could this be changed to add(coords: Coordinates) {} ??
   /**
    * Add vector to this Hex.
    * @param {Hex} vec the Hex vector to add to this Hex.
@@ -258,5 +257,18 @@ export class Hex {
       );
     }
     return this.context.polygonCorners(this, ignoreGutter);
+  }
+
+  /**
+   * Returns all pixel coordinates of the corners of this hex.
+   * @returns {Point[]}
+   */
+  public arcCoordinates(size: number, ignoreGutter: boolean = false) {
+    if (!this.context) {
+      throw new ReferenceError(
+        "No layout context for converting to coordinates"
+      );
+    }
+    return this.context.getCornerArcs(this, size, ignoreGutter);
   }
 }

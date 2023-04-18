@@ -20,6 +20,10 @@ export class Grid<T extends Hex> {
       this.tiles[node.toString()] = node;
     });
   }
+  /**
+   * Return an array of all of the nodes in the grid.
+   * @returns {Hex[]}
+   */
   toArray() {
     return Object.values(this.tiles);
   }
