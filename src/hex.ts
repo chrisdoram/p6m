@@ -1,122 +1,157 @@
-import { Layout } from "./layout";
-
 export enum pointyDirection {
-  NE,
   E,
   SE,
   SW,
+  W,
   NW,
-  N,
+  NE,
 }
 
 export enum flatDirection {
-  NE,
   SE,
   S,
   SW,
   NW,
   N,
+  NE,
 }
 
 export type Direction = pointyDirection | flatDirection;
 
-export enum Offset {
+export enum Offsets {
   even = +1,
   odd = -1,
 }
-export type Cuboid = { q: number; r: number; s: number };
-export type Axial = { q: number; r: number };
-export type Cartesian = { col: number; row: number; offset: Offset };
-export type Coordinates = Cuboid | Axial | Cartesian;
+export type Cube = { q: number; r: number; s: number };
+export type Axial =
+  | { q: number; r: number }
+  | { q: number; s: number }
+  | { r: number; s: number };
+export type Offset = { col: number; row: number };
+export type Coordinates = Cube | Axial | Offset;
 
-export function isCuboid(x: Coordinates): x is Cuboid {
-  return "s" in x;
+export function isCube(x: Coordinates): x is Cube {
+  return "q" in x && "r" in x && "s" in x;
 }
 
-export function isCartesian(x: Coordinates): x is Cartesian {
-  return "row" in x && "col" in x && "offset" in x;
+export function isOffset(x: Coordinates): x is Offset {
+  return "row" in x && "col" in x;
 }
 
 export function isAxial(x: Coordinates): x is Axial {
-  return !isCuboid(x) && !isCartesian(x);
+  return !isCube(x) && !isOffset(x);
 }
 
-export class Hex {
+/**
+ * Convert axial coordinates into cuboid coordinates.
+ * @param {Axial} coordinates axial coordinates.
+ * @returns {Cuboid}
+ */
+function fromAxial(coords: Axial): Cube {
+  return {
+    q: "q" in coords ? coords.q : -coords.r - coords.s,
+    r: "r" in coords ? coords.r : -coords.q - coords.s,
+    s: "s" in coords ? coords.s : -coords.q - coords.r,
+  };
+}
+
+/**
+ * Convert cartesian coordinates into cuboid coordinates.
+ * @param {Cartesian} coordinates cartesian coordinates.
+ * @returns {Cuboid}
+ */
+function fromOffset(
+  coordinates: Offset,
+  offset: Offsets,
+  orientation: "POINTY" | "FLAT"
+): Cube {
+  const { row, col } = coordinates;
+  const isPointy = orientation === "POINTY";
+  return fromAxial({
+    q: isPointy ? col - (row + offset * (row & 1)) / 2 : col,
+    r: isPointy ? row : row - (col + offset * (col & 1)) / 2,
+  });
+}
+
+export type HexConfig = {
+  offset: number;
+  orientation: "FLAT" | "POINTY";
+};
+
+export class Hex implements Readonly<Cube>, Readonly<Offset> {
   readonly q: number;
   readonly r: number;
   readonly s: number;
-  context: Layout | undefined;
+  config: HexConfig;
 
-  constructor(coordinates: Coordinates, context?: Layout) {
-    const { q, r, s } = Hex.toCuboid(coordinates);
+  constructor(
+    coordinates: Coordinates,
+    { offset = 1, orientation = "POINTY" }: Partial<HexConfig> = {
+      offset: 1,
+      orientation: "POINTY",
+    }
+  ) {
+    this.config = { offset, orientation };
+    const { q, r, s } = Hex.toCube(coordinates, offset, orientation);
     this.q = q;
     this.r = r;
     this.s = s;
     if (q + r + s !== 0) {
       throw new RangeError(`Hex(${q}, ${r}, ${s}) invalid: does not zero-sum`);
     }
-    this.context = context;
+  }
+
+  get col() {
+    const isPointy = this.config.orientation === "POINTY";
+    return isPointy
+      ? this.q + (this.r + this.config.offset * (this.r & 1)) / 2
+      : this.q;
+  }
+
+  get row() {
+    const isPointy = this.config.orientation === "POINTY";
+    return isPointy
+      ? this.r
+      : this.r + (this.q + this.config.offset * (this.q & 1)) / 2;
   }
 
   /**
    * Axial vectors of the six neighboring Hex's.
    */
   private static DIRECTION_VECTORS: Axial[] = [
-    { q: +1, r: -1 },
     { q: +1, r: 0 },
     { q: 0, r: +1 },
     { q: -1, r: +1 },
     { q: -1, r: 0 },
     { q: 0, r: -1 },
+    { q: +1, r: -1 },
   ];
 
   /**
-   * Convert coordinates into cuboid coordinates.
-   * @param {Coordinates} coordinates axial, cartesian or cuboid coordinates.
+   * Convert coordinates into cube coordinates.
+   * @param {Coordinates} coordinates axial, cartesian or cube coordinates.
    * @returns {Cuboid}
    */
-  private static toCuboid(coordinates: Coordinates): Cuboid {
+  private static toCube(
+    coordinates: Coordinates,
+    offset: Offsets,
+    orientation: "POINTY" | "FLAT"
+  ): Cube {
     if (isAxial(coordinates)) {
-      return Hex.fromAxial(coordinates);
-    } else if (isCartesian(coordinates)) {
-      return Hex.fromCartesian(coordinates);
+      return fromAxial(coordinates);
+    } else if (isOffset(coordinates)) {
+      return fromOffset(coordinates, offset, orientation);
     } else {
       return coordinates;
     }
   }
 
   /**
-   * Convert axial coordinates into cuboid coordinates.
-   * @param {Axial} coordinates axial coordinates.
-   * @returns {Cuboid}
-   */
-  private static fromAxial(coordinates: Axial): Cuboid {
-    return {
-      q: coordinates.q,
-      r: coordinates.r,
-      s: -coordinates.q - coordinates.r,
-    };
-  }
-
-  /**
-   * Convert cartesian coordinates into cuboid coordinates.
-   * @param {Cartesian} coordinates cartesian coordinates.
-   * @returns {Cuboid}
-   */
-  private static fromCartesian(coordinates: Cartesian): Cuboid {
-    const { row, col, offset } = coordinates;
-    return Hex.fromAxial({
-      q: col,
-      r: row - (col + offset * (col & 1)) / 2,
-    });
-  }
-
-  /**
-   * Returns a string representation of this Hex in the form "hex(q,r,s)".
+   * Returns a string representation of this Hex.
    * @returns {string}
    */
   public toString() {
-    return `hex(${this.q},${this.r},${this.s})`;
+    return `${this.constructor.name}(${this.q},${this.r},${this.s})`;
   }
 
   /**
@@ -178,7 +213,12 @@ export class Hex {
    */
   public neighbor(direction: Direction) {
     if (!(direction >= 0 && direction <= 5)) {
-      throw new Error("Direction must be between 0 and 5");
+      const isPointy = this.config.orientation === "POINTY";
+      throw new Error(
+        `Direction must be between 0 (${
+          isPointy ? "East" : "South East"
+        }) and 5 (${isPointy ? "North East" : "North"})`
+      );
     }
     return this.add(new Hex(Hex.DIRECTION_VECTORS[direction]));
   }
@@ -187,7 +227,7 @@ export class Hex {
    * Returns all 6 neighbors of this Hex.
    * @returns {Hex[]}
    */
-  public allNeighbors() {
+  public get neighbors() {
     const n: Hex[] = [];
     for (let d of Hex.DIRECTION_VECTORS) {
       n.push(this.add(new Hex(d)));
@@ -235,40 +275,40 @@ export class Hex {
     return new Hex({ q: qi, r: ri });
   }
 
-  /**
-   * Returns the coordinates of the center of this hex.
-   * @returns {Point}
-   */
-  public toPoint() {
-    if (!this.context) {
-      throw new ReferenceError("No layout context for converting to a point");
-    }
-    return this.context.hexToPixel(this);
-  }
+  // /**
+  //  * Returns the coordinates of the center of this hex.
+  //  * @returns {Point}
+  //  */
+  // public toPoint() {
+  //   if (!this.context) {
+  //     throw new ReferenceError("No layout context for converting to a point");
+  //   }
+  //   return this.context.hexToPixel(this);
+  // }
 
-  /**
-   * Returns all pixel coordinates of the corners of this hex.
-   * @returns {Point[]}
-   */
-  public toCoordinates(ignoreGutter: boolean = false) {
-    if (!this.context) {
-      throw new ReferenceError(
-        "No layout context for converting to coordinates"
-      );
-    }
-    return this.context.polygonCorners(this, ignoreGutter);
-  }
+  // /**
+  //  * Returns all pixel coordinates of the corners of this hex.
+  //  * @returns {Point[]}
+  //  */
+  // public toCoordinates(ignoreGutter: boolean = false) {
+  //   if (!this.context) {
+  //     throw new ReferenceError(
+  //       "No layout context for converting to coordinates"
+  //     );
+  //   }
+  //   return this.context.polygonCorners(this, ignoreGutter);
+  // }
 
-  /**
-   * Returns all pixel coordinates of the corners of this hex.
-   * @returns {Point[]}
-   */
-  public arcCoordinates(size: number, ignoreGutter: boolean = false) {
-    if (!this.context) {
-      throw new ReferenceError(
-        "No layout context for converting to coordinates"
-      );
-    }
-    return this.context.getCornerArcs(this, size, ignoreGutter);
-  }
+  // /**
+  //  * Returns all pixel coordinates of the corners of this hex.
+  //  * @returns {Point[]}
+  //  */
+  // public arcCoordinates(size: number, ignoreGutter: boolean = false) {
+  //   if (!this.context) {
+  //     throw new ReferenceError(
+  //       "No layout context for converting to coordinates"
+  //     );
+  //   }
+  //   return this.context.getCornerArcs(this, size, ignoreGutter);
+  // }
 }
