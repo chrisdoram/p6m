@@ -12,16 +12,16 @@ enum State {
 
 type Callback = (u: Hex) => void;
 
-function initializeColor<T extends Hex>(vertices: T[]) {
-  const color: any = {};
+function initializeState<T extends Hex>(vertices: T[]) {
+  const state: any = {};
   for (let i = 0; i < vertices.length; i++) {
-    color[vertices[i].toString()] = State.NOT_VISITED;
+    state[vertices[i].toString()] = State.NOT_VISITED;
   }
-  return color;
+  return state;
 }
 
-const depthFirstSearchVisit = (u: Hex, color: any, callback: Callback) => {
-  color[u.toString()] = "grey";
+const depthFirstSearchVisit = (u: Hex, state: any, callback: Callback) => {
+  state[u.toString()] = State.VISITED;
   if (callback) {
     callback(u);
   }
@@ -29,11 +29,11 @@ const depthFirstSearchVisit = (u: Hex, color: any, callback: Callback) => {
   const neighbors = u.neighbors;
   for (let i = 0; i < neighbors.length; i++) {
     const w = neighbors[i];
-    if (color[w.toString()] === State.NOT_VISITED) {
-      depthFirstSearchVisit(w, color, callback);
+    if (state[w.toString()] === State.NOT_VISITED) {
+      depthFirstSearchVisit(w, state, callback);
     }
   }
-  color[u.toString()] = State.FINISHED;
+  state[u.toString()] = State.FINISHED;
   // console.log('explored ' + u);
 };
 
@@ -41,18 +41,18 @@ export function depthFirstSearch<T extends Hex>(
   vertices: T[],
   callback: Callback
 ) {
-  const color = initializeColor(vertices);
+  const state = initializeState(vertices);
 
   for (let i = 0; i < vertices.length; i++) {
-    if (color[vertices[i].toString()] === State.NOT_VISITED) {
-      depthFirstSearchVisit(vertices[i], color, callback);
+    if (state[vertices[i].toString()] === State.NOT_VISITED) {
+      depthFirstSearchVisit(vertices[i], state, callback);
     }
   }
 }
 
 const DFSVisit = (
   u: Hex,
-  color: any,
+  state: any,
   d: any,
   f: any,
   p: any,
@@ -60,23 +60,23 @@ const DFSVisit = (
   callback: Callback
 ) => {
   // console.log('discovered ' + u);
-  color[u.toString()] = State.VISITED;
+  state[u.toString()] = State.VISITED;
   d[u.toString()] = ++time.count;
   const neighbors = u.neighbors;
   for (let i = 0; i < neighbors.length; i++) {
     const w = neighbors[i];
-    if (color[w.toString()] === State.NOT_VISITED) {
+    if (state[w.toString()] === State.NOT_VISITED) {
       p[w.toString()] = u;
-      DFSVisit(w, color, d, f, p, time, callback);
+      DFSVisit(w, state, d, f, p, time, callback);
     }
   }
-  color[u.toString()] = State.FINISHED;
+  state[u.toString()] = State.FINISHED;
   f[u.toString()] = ++time.count;
   // console.log('explored ' + u);
 };
 
 export function DFS<T extends Hex>(vertices: T[], callback: Callback) {
-  const color = initializeColor(vertices);
+  const state = initializeState(vertices);
   // discovery
   const d: any = {};
   // finished
@@ -95,8 +95,8 @@ export function DFS<T extends Hex>(vertices: T[], callback: Callback) {
 
   // loop over all vertices visiting them if they have not been visited yet
   for (let i = 0; i < vertices.length; i++) {
-    if (color[vertices[i].toString()] === State.NOT_VISITED) {
-      DFSVisit(vertices[i], color, d, f, p, time, callback);
+    if (state[vertices[i].toString()] === State.NOT_VISITED) {
+      DFSVisit(vertices[i], state, d, f, p, time, callback);
     }
   }
 
