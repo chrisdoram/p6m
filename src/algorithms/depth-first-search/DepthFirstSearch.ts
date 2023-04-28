@@ -20,7 +20,11 @@ function initializeState<T extends Hex>(vertices: T[]) {
   return state;
 }
 
-const depthFirstSearchVisit = (u: Hex, state: any, callback: Callback) => {
+function depthFirstSearchVisit<T extends Hex>(
+  u: T,
+  state: any,
+  callback: Callback
+) {
   state[u.toString()] = State.VISITED;
   if (callback) {
     callback(u);
@@ -35,7 +39,7 @@ const depthFirstSearchVisit = (u: Hex, state: any, callback: Callback) => {
   }
   state[u.toString()] = State.FINISHED;
   // console.log('explored ' + u);
-};
+}
 
 export function depthFirstSearch<T extends Hex>(
   vertices: T[],
@@ -50,15 +54,15 @@ export function depthFirstSearch<T extends Hex>(
   }
 }
 
-const DFSVisit = (
-  u: Hex,
+function DFSVisit<T extends Hex>(
+  u: T,
   state: any,
   d: any,
   f: any,
   p: any,
   time: any,
   callback: Callback
-) => {
+) {
   // console.log('discovered ' + u);
   state[u.toString()] = State.VISITED;
   d[u.toString()] = ++time.count;
@@ -73,7 +77,7 @@ const DFSVisit = (
   state[u.toString()] = State.FINISHED;
   f[u.toString()] = ++time.count;
   // console.log('explored ' + u);
-};
+}
 
 export function DFS<T extends Hex>(vertices: T[], callback: Callback) {
   const state = initializeState(vertices);
