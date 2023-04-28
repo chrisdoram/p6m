@@ -1,5 +1,7 @@
 import { describe, expect, test } from "vitest";
-import { Cube, Hex, flatDirection, pointyDirection } from ".";
+import { Hex } from "..";
+import { pointyDirection, flatDirection } from "./utils";
+import type { Cube } from "./types";
 
 describe("instantiation", () => {
   test("with Cube coordinates", () => {
@@ -69,6 +71,7 @@ describe("coordinate properties", () => {
 describe("transform methods", () => {
   const hex = new Hex({ q: 1, r: 1 });
   const other = new Hex({ q: 1, r: -1 });
+  const floatHex = new Hex({ q: 1.2, r: 3.01 });
   test("toString()", () => {
     expect(hex.toString()).toBe("_Hex(1,1,-2)");
   });
@@ -90,6 +93,15 @@ describe("transform methods", () => {
   });
   test("rotateRight()", () => {
     expect(hex.rotateRight().rotateRight()).toContain({ q: -2, r: 1, s: 1 });
+  });
+  test("length()", () => {
+    expect(hex.length()).toBe(2);
+  });
+  test("distance()", () => {
+    expect(hex.distance(other)).toBe(2);
+  });
+  test("round()", () => {
+    expect(floatHex.round()).toContain({ q: 1, r: 3 });
   });
 });
 

@@ -1,4 +1,4 @@
-import { Hex } from "./hex";
+import { Hex } from "./hex/hex";
 
 /**
  * Linear interpolation between this Hex and b with step size t.

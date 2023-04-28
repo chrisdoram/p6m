@@ -1,4 +1,4 @@
-import { Hex } from "./hex.js";
+import { Hex } from "./hex/hex.js";
 import { Orientation } from "./orientation.js";
 import { Point } from "./point.js";
 

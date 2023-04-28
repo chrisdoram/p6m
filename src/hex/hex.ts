@@ -1,88 +1,20 @@
-export enum pointyDirection {
-  E,
-  SE,
-  SW,
-  W,
-  NW,
-  NE,
-}
+import type {
+  Coordinates,
+  Cube,
+  Offset,
+  Axial,
+  HexConfig,
+  Direction,
+  Offsets,
+} from "./types";
 
-export enum flatDirection {
-  SE,
-  S,
-  SW,
-  NW,
-  N,
-  NE,
-}
-
-export type Direction = pointyDirection | flatDirection;
-
-export enum Offsets {
-  even = +1,
-  odd = -1,
-}
-export type Cube = { q: number; r: number; s: number };
-export type Axial =
-  | { q: number; r: number }
-  | { q: number; s: number }
-  | { r: number; s: number };
-export type Offset = { col: number; row: number };
-export type Coordinates = Cube | Axial | Offset;
-
-export function isCube(x: Coordinates): x is Cube {
-  return "q" in x && "r" in x && "s" in x;
-}
-
-export function isOffset(x: Coordinates): x is Offset {
-  return "row" in x && "col" in x;
-}
-
-export function isAxial(x: Coordinates): x is Axial {
-  return !isCube(x) && !isOffset(x);
-}
-
-/**
- * Convert axial coordinates into cuboid coordinates.
- * @param {Axial} coordinates axial coordinates.
- * @returns {Cuboid}
- */
-function fromAxial(coords: Axial): Cube {
-  return {
-    q: "q" in coords ? coords.q : -coords.r - coords.s,
-    r: "r" in coords ? coords.r : -coords.q - coords.s,
-    s: "s" in coords ? coords.s : -coords.q - coords.r,
-  };
-}
-
-/**
- * Convert cartesian coordinates into cuboid coordinates.
- * @param {Cartesian} coordinates cartesian coordinates.
- * @returns {Cuboid}
- */
-function fromOffset(
-  coordinates: Offset,
-  offset: Offsets,
-  orientation: "POINTY" | "FLAT"
-): Cube {
-  const { row, col } = coordinates;
-  const isPointy = orientation === "POINTY";
-  return fromAxial({
-    q: isPointy ? col - (row + offset * (row & 1)) / 2 : col,
-    r: isPointy ? row : row - (col + offset * (col & 1)) / 2,
-  });
-}
-
-export type HexConfig = {
-  offset: number;
-  orientation: "FLAT" | "POINTY";
-};
+import { isAxial, fromAxial, isOffset, fromOffset } from "./utils";
 
 export class Hex implements Readonly<Cube>, Readonly<Offset> {
   readonly q: number;
   readonly r: number;
   readonly s: number;
-  config: HexConfig;
+  readonly config: HexConfig;
 
   constructor(
     coordinates: Coordinates,
@@ -148,6 +80,7 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Returns a string representation of this Hex.
+   * This is helpful for logging and hashing.
    * @returns {string}
    */
   public toString() {
