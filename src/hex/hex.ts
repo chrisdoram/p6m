@@ -1,30 +1,37 @@
 import type {
-  Coordinates,
   Cube,
   Offset,
   Axial,
   HexConfig,
   Direction,
   Offsets,
+  HexCoordinates,
 } from "./types";
 
-import { isAxial, fromAxial, isOffset, fromOffset } from "./utils";
+import {
+  isAxial,
+  fromAxial,
+  isOffset,
+  fromOffset,
+  isPartial,
+  fromPartial,
+} from "./utils";
 
-export class Hex implements Readonly<Cube>, Readonly<Offset> {
+export class Hex implements Readonly<Axial>, Readonly<Cube>, Readonly<Offset> {
   readonly q: number;
   readonly r: number;
   readonly s: number;
-  readonly config: HexConfig;
+  private _config: HexConfig;
 
   constructor(
-    coordinates: Coordinates,
-    { offset = 1, orientation = "POINTY" }: Partial<HexConfig> = {
+    coords: HexCoordinates,
+    { offset = 1, orientation = "POINTY" }: HexConfig | Partial<HexConfig> = {
       offset: 1,
       orientation: "POINTY",
     }
   ) {
-    this.config = { offset, orientation };
-    const { q, r, s } = Hex.toCube(coordinates, offset, orientation);
+    this._config = { offset, orientation };
+    const { q, r, s } = Hex.toCube(coords, offset, orientation);
     this.q = q;
     this.r = r;
     this.s = s;
@@ -33,10 +40,18 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
     }
   }
 
+  get config() {
+    return this._config;
+  }
+
+  set config(c: Partial<HexConfig>) {
+    this._config = { ...this._config, ...c };
+  }
+
   get col() {
     const isPointy = this.config.orientation === "POINTY";
     return isPointy
-      ? this.q + (this.r + this.config.offset * (this.r & 1)) / 2
+      ? this.q + (this.r + this._config.offset * (this.r & 1)) / 2
       : this.q;
   }
 
@@ -44,7 +59,7 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
     const isPointy = this.config.orientation === "POINTY";
     return isPointy
       ? this.r
-      : this.r + (this.q + this.config.offset * (this.q & 1)) / 2;
+      : this.r + (this.q + this._config.offset * (this.q & 1)) / 2;
   }
 
   /**
@@ -61,11 +76,10 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Convert coordinates into cube coordinates.
-   * @param {Coordinates} coordinates axial, cartesian or cube coordinates.
-   * @returns {Cuboid}
+   * @param coordinates axial, cartesian or cube coordinates.
    */
   private static toCube(
-    coordinates: Coordinates,
+    coordinates: HexCoordinates,
     offset: Offsets,
     orientation: "POINTY" | "FLAT"
   ): Cube {
@@ -73,7 +87,12 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
       return fromAxial(coordinates);
     } else if (isOffset(coordinates)) {
       return fromOffset(coordinates, offset, orientation);
+    } else if (isPartial(coordinates)) {
+      return fromPartial(coordinates);
     } else {
+      if (Array.isArray(coordinates)) {
+        return { q: coordinates[0], r: coordinates[1], s: coordinates[2] };
+      }
       return coordinates;
     }
   }
@@ -81,7 +100,6 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
   /**
    * Returns a string representation of this Hex.
    * This is helpful for logging and hashing.
-   * @returns {string}
    */
   public toString() {
     return `${this.constructor.name}(${this.q},${this.r},${this.s})`;
@@ -89,26 +107,23 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Compare equality between this Hex and another Hex.
-   * @param {Hex} b another Hex.
-   * @returns {boolean}
+   * @param b Hex.
    */
   public equals(b: Hex) {
     return this.q === b.q && this.r === b.r && this.s === b.s;
   }
 
   /**
-   * Add vector to this Hex.
-   * @param {Hex} vec the Hex vector to add to this Hex.
-   * @returns {Hex}
+   * Add a vector to this Hex.
+   * @param vec Hex.
    */
   public add(vec: Hex) {
     return new Hex({ q: this.q + vec.q, r: this.r + vec.r });
   }
 
   /**
-   * Subtract vector from this Hex.
-   * @param {Hex} vec the Hex vector to subtract from this Hex.
-   * @returns {Hex}
+   * Subtract a vector from this Hex.
+   * @param vec Hex.
    */
   public subtract(vec: Hex) {
     return new Hex({ q: this.q - vec.q, r: this.r - vec.r });
@@ -116,8 +131,7 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Scale this Hex by a constant k.
-   * @param {number} k the constant to scale by.
-   * @returns {Hex}
+   * @param k constant to scale by.
    */
   public scale(k: number) {
     return new Hex({ q: this.q * k, r: this.r * k });
@@ -125,7 +139,6 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Rotate this Hex vector 60 degrees anti-clockwise.
-   * @returns {Hex}
    */
   public rotateLeft() {
     return new Hex({ q: -this.s, r: -this.q, s: -this.r });
@@ -133,7 +146,6 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Rotate this Hex vector 60 degrees clockwise.
-   * @returns {Hex}
    */
   public rotateRight() {
     return new Hex({ q: -this.r, r: -this.s, s: -this.q });
@@ -141,8 +153,7 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Returns the neighboring hex in the given direction.
-   * @param {Direction} direction the direction of the neighbor from N (flat-top) or NE (pointy-top)
-   * @returns {Hex}
+   * @param direction the direction of the neighbor from SE (flat-top) or E (pointy-top)
    */
   public neighbor(direction: Direction) {
     if (!(direction >= 0 && direction <= 5)) {
@@ -158,7 +169,6 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Returns all 6 neighbors of this Hex.
-   * @returns {Hex[]}
    */
   public get neighbors() {
     const n: Hex[] = [];
@@ -170,7 +180,6 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Returns the length of the Hex vector in cuboid coordinates.
-   * @returns {number}
    */
   public length() {
     const abs = Math.abs;
@@ -179,8 +188,7 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Returns the distance between this Hex and another Hex.
-   * @param {Hex} b the other Hex.
-   * @returns {number}
+   * @param b Hex.
    */
   public distance(b: Hex) {
     return this.subtract(b).length();
@@ -188,7 +196,6 @@ export class Hex implements Readonly<Cube>, Readonly<Offset> {
 
   /**
    * Round this Hex to the nearest integer Hex.
-   * @returns {Hex}
    */
   public round() {
     // rounds hex in float coords to int coords

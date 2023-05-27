@@ -1,6 +1,6 @@
 import { Hex } from "./hex/hex.js";
 import { Orientation } from "./orientation.js";
-import { Point } from "./point.js";
+import { Point } from "./grid/types.js";
 
 export class Layout {
   orientation: Orientation;
@@ -28,7 +28,7 @@ export class Layout {
     const f = this.orientation.f;
     let x = (f[0] * h.q + f[1] * h.r) * this.size.x;
     let y = (f[2] * h.q + f[3] * h.r) * this.size.y;
-    return new Point(x + this.origin.x, y + this.origin.y);
+    return { x: x + this.origin.x, y: y + this.origin.y };
   }
 
   /**
@@ -37,10 +37,10 @@ export class Layout {
    * @returns {Hex}
    */
   public pixelToHex(p: Point) {
-    let pt = new Point(
-      (p.x - this.origin.x) / this.size.x,
-      (p.y - this.origin.y) / this.size.y
-    );
+    let pt = {
+      x: (p.x - this.origin.x) / this.size.x,
+      y: (p.y - this.origin.y) / this.size.y,
+    };
     const b = this.orientation.b;
     let q = b[0] * pt.x + b[1] * pt.y;
     let r = b[2] * pt.x + b[3] * pt.y;
@@ -55,15 +55,15 @@ export class Layout {
     // let angle = (2.0 * Math.PI * (this.orientation.startAngle - corner)) / 6.0;
     let angle = this.orientation.startAngle + (Math.PI / 3) * corner;
     if (ignoreGutter) {
-      return new Point(
-        this.size.x * Math.cos(angle),
-        this.size.y * Math.sin(angle)
-      );
+      return {
+        x: this.size.x * Math.cos(angle),
+        y: this.size.y * Math.sin(angle),
+      };
     } else {
-      return new Point(
-        (this.size.x - this.gutter / 2) * Math.cos(angle),
-        (this.size.y - this.gutter / 2) * Math.sin(angle)
-      );
+      return {
+        x: (this.size.x - this.gutter / 2) * Math.cos(angle),
+        y: (this.size.y - this.gutter / 2) * Math.sin(angle),
+      };
     }
   }
   /**
@@ -76,7 +76,7 @@ export class Layout {
     let center = this.hexToPixel(hex);
     for (let i = 0; i < 6; i++) {
       let offset = this.hexCornerOffset(i, ignoreGutter);
-      corners.push(new Point(center.x + offset.x, center.y + offset.y));
+      corners.push({ x: center.x + offset.x, y: center.y + offset.y });
     }
     return corners;
   }
@@ -91,8 +91,8 @@ export class Layout {
     const lAngle = this.orientation.startAngleL + step;
     const rAngle = this.orientation.startAngleR + step;
     return {
-      l: new Point(size * Math.cos(lAngle), size * Math.sin(lAngle)),
-      r: new Point(size * Math.cos(rAngle), size * Math.sin(rAngle)),
+      l: { x: size * Math.cos(lAngle), y: size * Math.sin(lAngle) },
+      r: { x: size * Math.cos(rAngle), y: size * Math.sin(rAngle) },
     };
   }
 
@@ -108,8 +108,8 @@ export class Layout {
     for (let i = 0; i < 6; i++) {
       let offsets = this.arcCornerOffsets(i, size);
       arcs.push({
-        l: new Point(corners[i].x + offsets.l.x, corners[i].y + offsets.l.y),
-        r: new Point(corners[i].x + offsets.r.x, corners[i].y + offsets.r.y),
+        l: { x: corners[i].x + offsets.l.x, y: corners[i].y + offsets.l.y },
+        r: { x: corners[i].x + offsets.r.x, y: corners[i].y + offsets.r.y },
       });
     }
     return arcs;

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { Hex } from "..";
+import { Hex } from ".";
 import { pointyDirection, flatDirection } from "./utils";
 import type { Cube } from "./types";
 
@@ -12,14 +12,14 @@ describe("instantiation", () => {
     });
   });
 
-  test("with Axial (partial) coordinates", () => {
+  test("with Axial / partial coordinates", () => {
     expect(new Hex({ q: 2, r: -4 })).toContain<Cube>({ q: 2, r: -4, s: 2 });
     expect(new Hex({ q: 2, s: 2 })).toContain<Cube>({ q: 2, r: -4, s: 2 });
     expect(new Hex({ r: -4, s: 2 })).toContain<Cube>({ q: 2, r: -4, s: 2 });
   });
 
   test("with offset coordinates", () => {
-    expect(new Hex({ row: 1, col: 2 }, { offset: +1 })).toContain({
+    expect(new Hex({ row: 1, col: 2 }, { offset: +1 })).toContain<Cube>({
       q: 1,
       r: 1,
       s: -2,
@@ -45,8 +45,24 @@ describe("instantiation", () => {
     });
   });
 
+  test("with tuple coordinates", () => {
+    expect(new Hex([1, 1])).toContain<Cube>({
+      q: 1,
+      r: 1,
+      s: -2,
+    });
+    expect(new Hex([2, 1, -3])).toContain<Cube>({
+      q: 2,
+      r: 1,
+      s: -3,
+    });
+  });
+
   test("cannot instantiate with invalid coordinates", () => {
     expect(() => new Hex({ q: 1, r: 1, s: 1 })).toThrow(
+      RangeError("Hex(1, 1, 1) invalid: does not zero-sum")
+    );
+    expect(() => new Hex([1, 1, 1])).toThrow(
       RangeError("Hex(1, 1, 1) invalid: does not zero-sum")
     );
   });
